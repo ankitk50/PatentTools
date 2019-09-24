@@ -26,11 +26,14 @@ for article in doc['ops:world-patent-data']['exchange-documents']['exchange-docu
         print "Patent Num:", patnum+kind+ ", has the publication date: ", publication_date
         break
 
-for article1 in doc['ops:world-patent-data']['exchange-documents']['exchange-document']['bibliographic-data']['priority-claims']['priority-claim']['document-id']:
-    if article1['@sequence'] == '1':
-    	priorpat = article1['doc-number']
-        #country=article['country']
-        priority_date = article1['date']
-        
-    	print "Patent Num:", patnum+ ", has the priority date: ", priority_date +", the patent takes the priority from ",priorpat 
-    break
+da=doc['ops:world-patent-data']['exchange-documents']['exchange-document']['bibliographic-data']['priority-claims']['priority-claim'][1]
+da=da['document-id'][0]
+priorpat = da['doc-number']
+priority_date = da['date']
+print "here"
+
+print priorpat
+print priority_date
+
+#print "Patent Num:", patnum+ ", has the priority date: ", priority_date +", the patent takes the priority from ",priorpat 
+   
