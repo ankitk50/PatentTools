@@ -36,7 +36,8 @@ for i in range(1,10):
 		priority_list.append(int(prior_date.text))
 	else:
 		break
-	
-print pat_num, publication_date, min(priority_list) #use min for earliest priority
+assignee =	tree.find('.//parties/applicants/applicant/[@data-format="epodoc"]/applicant-name/name').text
+title = tree.find('.//invention-title[@lang="en"]').text
+print pat_num, publication_date, min(priority_list), assignee, title #use min for earliest priority
 
 
