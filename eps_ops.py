@@ -1,8 +1,4 @@
 import epo_ops
-import xmltodict, json
-#import xml.etree.ElementTree as ET
-import pprint 
-
 from lxml import etree as ET
 
 NS = {
@@ -11,6 +7,7 @@ NS = {
     "ft": "http://www.epo.org/fulltext",
     "reg": "http://www.epo.org/register",
 }
+
 pat_num='1417800'
 country='EP'
 kind ='B1'
@@ -93,24 +90,22 @@ def get_family_data(tree):
 	for el in tree.findall("./ops:patent-family/ops:family-member", NS):
 		pub_ref = el.find('./epo:publication-reference/epo:document-id[@document-id-type="docdb"]',NS)
 		if pub_ref is not None:
-			number=pub_ref.find('./epo:doc-number',NS).text
-			country=pub_ref.find('./epo:country',NS).text
-			kind=pub_ref.find('./epo:kind',NS).text
 
-			doc_db_list.append(country+number+kind)
+			a=get_complete_patent_num(pub_ref)
+
+			doc_db_list.append(a)
 
 		app_ref = el.find('./epo:application-reference/epo:document-id[@document-id-type="docdb"]',NS)	
-		
+
 		if app_ref is not None:
 			
-			number=app_ref.find('./epo:doc-number',NS).text
-			country=app_ref.find('./epo:country',NS).text
-			kind=app_ref.find('./epo:kind',NS).text
+			b=get_complete_patent_num(app_ref)
 
-			doc_db_list.append(country+number+kind)
+			doc_db_list.append(b)
+
 	return doc_db_list
 
-def get_complete_patent_num(base_object):
+def get_complete_patent_num(base_object): 
 	number=base_object.find('./epo:doc-number',NS).text
 	country=base_object.find('./epo:country',NS).text
 	kind=base_object.find('./epo:kind',NS).text
@@ -124,7 +119,7 @@ def family_data_api(client):
 		input=epo_ops.models.Docdb(pat_num, country, kind), 
 		endpoint=None, constituents=None)
 	tree = XMLparser(response)
-	print get_family_data(tree)
+	return get_family_data(tree)
 
 
 
@@ -132,14 +127,9 @@ if __name__ == "__main__":
 	
 	client = epo_ops.Client(key='62kB2O6tJtmG2RQsoOMJZUOhmbAlAkJ5', secret='WpsdCAOg9GyWw8i1')  # Instantiate client
 	print published_data_api(client)
-	family_data_api(client)
+	print family_data_api(client)
 
-'''
-	response=get_published_data(client) #get the xml
-	tree = XMLparser(response) #parse the xml
-	bib_data=get_bibdata(tree, NS) #get all biblo (title, dates)
-	print bib_data
-'''
+
 
 #Playground below:
 	
