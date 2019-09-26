@@ -1,7 +1,7 @@
 import epo_ops
 import xmltodict, json
 import xml.etree.ElementTree as ET
-import pprint 
+import sys
 
 def beautify(response):
 	#the function gets rid of some troublesome namespaces in the xml
@@ -28,16 +28,26 @@ def savefile(xml):
 	with open('data.xml', 'w') as f:
 		f.write(xml)
 
-#main
-if __name__ == "__main__":
-	#get data from epo
-	client = epo_ops.Client(key='GTfPiUhprNpUavoL2B1WBT7MK0y1A3jw', secret='b1D4WcgkXNXQ5VTq')  # Instantiate client
+def published_data(client):
+
 	response = client.published_data(  # Retrieve bibliography data
   reference_type = 'publication',  # publication, application, priority
-  input = epo_ops.models.Docdb('1417800', 'EP', 'B1'),  # original, docdb, epodoc
+  input = epo_ops.models.Docdb('101430697', 'CN', 'B'),  # original, docdb, epodoc
   endpoint = 'biblio',  # optional, defaults to biblio in case of published_data
    #optional, list of constituents
    )
+	return response
+
+
+#main
+if __name__ == "__main__":
+
+	pat= sys.argv # to be used in case of working with agrguments
+	client = epo_ops.Client(key='GTfPiUhprNpUavoL2B1WBT7MK0y1A3jw', secret='b1D4WcgkXNXQ5VTq')  # Instantiate client
+
+	#get data from epo
+	response=published_data(client)
+	
 
 	xml=beautify(response) #cleaning XML
 
@@ -48,6 +58,10 @@ if __name__ == "__main__":
 
 	pat_num=tree.find('.//publication-reference/document-id[@document-id-type="epodoc"]/doc-number').text #obselete stuff
 	publication_date, priority_list= get_dates()
-	assignee =	tree.find('.//parties/applicants/applicant/[@data-format="epodoc"]/applicant-name/name').text
-	title = tree.find('.//invention-title[@lang="en"]').text
+	assignee =	tree.find('.//parties/applicants/applicant/[@data-format="original"]/applicant-name/name').text #many has data-format="original"
+	try:
+		title = tree.find('.//invention-title[@lang="en"]').text #some times not present, cases CN
+	except AttributeError:
+		print "Error: Title could not be extracted!"
+		title="Error!!!"
 	print pat_num, assignee, title, publication_date, priority_list 
