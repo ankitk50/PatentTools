@@ -10,7 +10,7 @@ NS = {
     "reg": "http://www.epo.org/register",
 }
 
-patent_list='EP1417800B1'
+patent_list=['EP1417800B1']
 
 def read_patent_from_excel(path):
 	df=path #to be developed
@@ -95,11 +95,7 @@ def XMLparser(response):
 	tree = ET.fromstring(xml.encode("utf-8"))  
 	return tree
 
-def published_data_api(client):
-	response=get_published_data(client) #get the xml
-	tree = XMLparser(response) #parse the xml
-	bib_data=get_bibdata(tree, NS) #get all biblo (title, dates)
-	return bib_data
+
 
 def get_family_data(tree):
 	doc_db_list = list()
@@ -131,8 +127,8 @@ def get_complete_patent_num(base_object):
 
 # API Calls
 
-def family_data_api(client):
-	country, pat_num, kind= get_kind_code(patent_list)
+def family_data_api(client, patent): #returns complete family data
+	country, pat_num, kind= get_kind_code(patent)
 	response=client.family(reference_type='publication', 
 		input=epo_ops.models.Docdb(pat_num, country, kind), 
 		endpoint=None, constituents=None)
@@ -140,23 +136,27 @@ def family_data_api(client):
 
 	return get_family_data(tree)
 
-def get_published_data(client):
-	country, pat_num, kind= get_kind_code(patent_list)
+def published_data_api(client, patent): #returns complete biblio data
+	country, pat_num, kind= get_kind_code(patent)
 	response = client.published_data(  # Retrieve bibliography data
   reference_type = 'publication',  # publication, application, priority
   input = epo_ops.models.Docdb(pat_num, country, kind),  # original, docdb, epodoc
   endpoint = 'biblio',  # optional, defaults to biblio in case of published_data
    #optional, list of constituents
    )
-	return response
+	tree = XMLparser(response) #parse the xml
+	bib_data=get_bibdata(tree, NS) #get all biblo (title, dates)
+	return bib_data
+	
 
 if __name__ == "__main__":
 	
 	client = epo_ops.Client(key='62kB2O6tJtmG2RQsoOMJZUOhmbAlAkJ5', secret='WpsdCAOg9GyWw8i1')  # Instantiate client
-	print published_data_api(client)
-	print family_data_api(client)
-	data = published_data_api(client)
-	family = family_data_api(client)
+	for patent in patent_list:
+		data = published_data_api(client,patent)
+		family = family_data_api(client, patent)
+		print data, family
+
 
 
 #Playground below:
