@@ -1,5 +1,7 @@
 import epo_ops
 from lxml import etree as ET
+from mailmerge import MailMerge
+from datetime import date
 
 NS = {
     "ops": "http://ops.epo.org",
@@ -8,22 +10,36 @@ NS = {
     "reg": "http://www.epo.org/register",
 }
 
-pat_num='1417800'
-country='EP'
-kind ='B1'
+patent_list='EP1417800B1'
+
+def read_patent_from_excel(path):
+	df=path #to be developed
+
+
+def get_kind_code(patent):
+	# assumes country code is of two characters
+	patent=(str(patent)).strip().replace(" ","") #sanatization, remove spaces
+	kind=""
+	number= patent[2:]
+	country= patent[:2]
+	lastchar=patent[-1]
+	secondlastchar=patent[-2]
+
+	if (ord(lastchar)>64 and ord(lastchar)<91) or (ord(secondlastchar)>96 and ord(secondlastchar)<123) : #if last char is alphabet
+		kind =lastchar 	#last character is the kind code
+		number=patent[2:-1]
+
+	if ord(lastchar)>48 and ord(lastchar)<58: #check if integer
+		if (ord(secondlastchar)>64 and ord(secondlastchar)<91) or (ord(secondlastchar)>96 and ord(secondlastchar)<123):
+			kind= secondlastchar+lastchar #last two characters are kind code
+			number=patent[2:-2]
+		else:
+			print "Kind code absent or some alein characters in the patent number", patent
+			
+	return country, number, kind
 
 
 
-
-def get_published_data(client):
-
-	response = client.published_data(  # Retrieve bibliography data
-  reference_type = 'publication',  # publication, application, priority
-  input = epo_ops.models.Docdb(pat_num, country, kind),  # original, docdb, epodoc
-  endpoint = 'biblio',  # optional, defaults to biblio in case of published_data
-   #optional, list of constituents
-   )
-	return response
 
 def get_the_dates(bib_data):
 
@@ -113,22 +129,34 @@ def get_complete_patent_num(base_object):
 	return country+number+kind
 
 
+# API Calls
 
 def family_data_api(client):
+	country, pat_num, kind= get_kind_code(patent_list)
 	response=client.family(reference_type='publication', 
 		input=epo_ops.models.Docdb(pat_num, country, kind), 
 		endpoint=None, constituents=None)
 	tree = XMLparser(response)
+
 	return get_family_data(tree)
 
-
+def get_published_data(client):
+	country, pat_num, kind= get_kind_code(patent_list)
+	response = client.published_data(  # Retrieve bibliography data
+  reference_type = 'publication',  # publication, application, priority
+  input = epo_ops.models.Docdb(pat_num, country, kind),  # original, docdb, epodoc
+  endpoint = 'biblio',  # optional, defaults to biblio in case of published_data
+   #optional, list of constituents
+   )
+	return response
 
 if __name__ == "__main__":
 	
 	client = epo_ops.Client(key='62kB2O6tJtmG2RQsoOMJZUOhmbAlAkJ5', secret='WpsdCAOg9GyWw8i1')  # Instantiate client
 	print published_data_api(client)
 	print family_data_api(client)
-
+	data = published_data_api(client)
+	family = family_data_api(client)
 
 
 #Playground below:
