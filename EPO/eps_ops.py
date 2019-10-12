@@ -2,6 +2,9 @@ import epo_ops
 from lxml import etree as ET
 from mailmerge import MailMerge
 from datetime import date
+from epo_gui_V1 import *
+
+
 
 NS = {
     "ops": "http://ops.epo.org",
@@ -9,8 +12,8 @@ NS = {
     "ft": "http://www.epo.org/fulltext",
     "reg": "http://www.epo.org/register",
 }
-
-patent_list=['EP1417800B1']
+#US5606609A, EP1417800B1 
+#patent_list=['EP1417800B1',]
 
 def read_patent_from_excel(path):
 	df=path #to be developed
@@ -34,8 +37,8 @@ def get_kind_code(patent):
 			kind= secondlastchar+lastchar #last two characters are kind code
 			number=patent[2:-2]
 		else:
-			print "Kind code absent or some alein characters in the patent number", patent
-			
+			print ("Kind code absent or some alein characters in the patent number", patent)
+			#raise exeception, do not process the patent
 	return country, number, kind
 
 
@@ -76,8 +79,7 @@ def get_bibdata(tree, NS):
             data["publication_date"]= pub
             data['earliest priority']= min(prior)
             data['assignee']=assignee
-
-   	return data
+	return data
     
 def get_assignee(bib_data):
 	assignee =	bib_data.find('./epo:parties/epo:applicants/epo:applicant/[@data-format="original"]/epo:applicant-name/epo:name', NS).text #many has data-format="original"
@@ -152,10 +154,14 @@ def published_data_api(client, patent): #returns complete biblio data
 if __name__ == "__main__":
 	
 	client = epo_ops.Client(key='62kB2O6tJtmG2RQsoOMJZUOhmbAlAkJ5', secret='WpsdCAOg9GyWw8i1')  # Instantiate client
+	patent_list , dir_path= main() #to work with gui
 	for patent in patent_list:
 		data = published_data_api(client,patent)
 		family = family_data_api(client, patent)
-		print data, family
+		print (data, family)
+
+
+
 
 
 
