@@ -1,9 +1,9 @@
 import epo_ops
 from lxml import etree as ET
-from mailmerge import MailMerge
+#from mailmerge import MailMerge
 from datetime import date
 from epo_gui_V1 import *
-
+import pandas as pd
 
 
 NS = {
@@ -13,7 +13,7 @@ NS = {
     "reg": "http://www.epo.org/register",
 }
 #US5606609A, EP1417800B1 
-#patent_list=['EP1417800B1',]
+#patent_list=['EP1417800B1']
 
 def read_patent_from_excel(path):
 	df=path #to be developed
@@ -21,7 +21,7 @@ def read_patent_from_excel(path):
 
 def get_kind_code(patent):
 	# assumes country code is of two characters
-	patent=(str(patent)).strip().replace(" ","") #sanatization, remove spaces
+	patent=(str(patent)).strip().replace(" ","") #sanitization, remove spaces
 	kind=""
 	number= patent[2:]
 	country= patent[:2]
@@ -67,7 +67,7 @@ def get_bibdata(tree, NS):
 
             #scraping
 
-            data["family_id"] = document.attrib["family-id"]
+            data["Family Id"] = document.attrib["family-id"]
             bib_data = document.find("./epo:bibliographic-data", NS)
             title=get_title(bib_data) #title
             pub, prior=get_the_dates(bib_data) #dates
@@ -75,10 +75,10 @@ def get_bibdata(tree, NS):
        
             #data logging
 
-            data["title"]= title
-            data["publication_date"]= pub
-            data['earliest priority']= min(prior)
-            data['assignee']=assignee
+            data["Title"]= title
+            data["Publication date"]= pub
+            data['Earliest priority']= min(prior)
+            data['Assignee']=assignee
 	return data
     
 def get_assignee(bib_data):
@@ -101,6 +101,7 @@ def XMLparser(response):
 
 def get_family_data(tree):
 	doc_db_list = list()
+	fam_str=""
 	for el in tree.findall("./ops:patent-family/ops:family-member", NS):
 		pub_ref = el.find('./epo:publication-reference/epo:document-id[@document-id-type="docdb"]',NS)
 		if pub_ref is not None:
@@ -108,6 +109,7 @@ def get_family_data(tree):
 			a=get_complete_patent_num(pub_ref)
 
 			doc_db_list.append(a)
+			fam_str=fam_str+a+"| "
 
 		app_ref = el.find('./epo:application-reference/epo:document-id[@document-id-type="docdb"]',NS)	
 
@@ -116,8 +118,9 @@ def get_family_data(tree):
 			b=get_complete_patent_num(app_ref)
 
 			doc_db_list.append(b)
+			fam_str=fam_str+a+"| "
 
-	return doc_db_list
+	return doc_db_list, fam_str
 
 def get_complete_patent_num(base_object): 
 	number=base_object.find('./epo:doc-number',NS).text
@@ -149,16 +152,33 @@ def published_data_api(client, patent): #returns complete biblio data
 	tree = XMLparser(response) #parse the xml
 	bib_data=get_bibdata(tree, NS) #get all biblo (title, dates)
 	return bib_data
+
+def export_to_excel(frame):
+	frame.to_excel("output.xlsx")
+	print "***Excel downloaded!***"
+
+def push_to_mainframe(frame,data):
+	f1= pd.DataFrame(data, index=[0], columns=col) #make a data frame from dict
+	return frame.append(f1,ignore_index = True) #append data frame to the main frame
 	
 
 if __name__ == "__main__":
-	
+
+	frame=pd.DataFrame() #define mainframe
+	col=['Patent No.', 'Title', 'Family Id', 'Earliest priority', 'Publication date', 'Assignee', 'Family members']
 	client = epo_ops.Client(key='62kB2O6tJtmG2RQsoOMJZUOhmbAlAkJ5', secret='WpsdCAOg9GyWw8i1')  # Instantiate client
 	patent_list , dir_path= main() #to work with gui
 	for patent in patent_list:
+		
 		data = published_data_api(client,patent)
-		family = family_data_api(client, patent)
-		print (data, family)
+		family_list, family_str = family_data_api(client, patent) #list and piper separated string
+		data['Family members']=family_str[:-2] #remove last piper and cache to dict
+		data['Patent No.']=patent
+		frame=push_to_mainframe(frame,data)
+		print data 
+
+	print frame.head()
+	export_to_excel(frame) #export to excel sheet # default name output.xlsx
 
 
 
@@ -166,7 +186,7 @@ if __name__ == "__main__":
 
 
 #Playground below:
-	
+# US8139109B2,US5606609A,EP1417800B1
 '''
 documents = tree.findall("./epo:exchange-documents/epo:exchange-document", NS)
 for document in documents:
