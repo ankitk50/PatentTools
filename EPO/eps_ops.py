@@ -18,6 +18,9 @@ NS = {
 def read_patent_from_excel(path):
 	df=path #to be developed
 
+def save_to_xmlfile(xml):
+	with open('data_family.xml', 'w') as f: #get xml response
+		f.write(xml)
 
 def get_kind_code(patent):
 	# assumes country code is of two characters
@@ -73,7 +76,7 @@ def get_bibdata(tree, NS):
             pub, prior=get_the_dates(bib_data) #dates
             assignee=get_assignee(bib_data)#assignee/applicant
             app_date=get_application_date(bib_data)
-            inventors=list_to_str(get_inventor_data(bib_data))
+            inventors=get_inventor_data(bib_data)
             #data logging
 
             data["Title"]= title
@@ -129,13 +132,12 @@ def get_family_data(tree):
 	return doc_db_list
 
 def get_inventor_data(tree):
-	doc_db_list = list()
+	inventor_name = ""
 	
 	for el in tree.findall('./epo:parties/epo:inventors/epo:inventor[@data-format="original"]/epo:inventor-name/epo:name', NS):
-		inventor_name = el.text
+		inventor_name += el.text
 		#print inventor_name
-		doc_db_list.append(inventor_name) 
-	return doc_db_list
+	return inventor_name
 
 
 
@@ -154,6 +156,7 @@ def family_data_api(client, patent): #returns complete family data
 	response=client.family(reference_type='publication', 
 		input=epo_ops.models.Docdb(pat_num, country, kind), 
 		endpoint=None, constituents=None)
+	#save_to_xmlfile(response.content) #view xml response
 	tree = XMLparser(response)
 
 	return get_family_data(tree)
@@ -203,6 +206,7 @@ if __name__ == "__main__":
 		data['Patent No.']=patent
 		frame=push_to_mainframe(frame,data)
 		print data 
+	
 
 	#print frame.head()
 	export_to_excel(frame) #export to excel sheet # default name output.xlsx
