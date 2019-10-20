@@ -42,6 +42,13 @@ def get_kind_code(patent):
 		else:
 			print ("Kind code absent or some alein characters in the patent number", patent)
 			#raise exeception, do not process the patent
+
+#make US applications Espacenet compatible
+	if country=='US':
+		if len(number)> 10:
+			number=number[:4]+number[5:]
+
+
 	return country, number, kind
 
 
@@ -72,11 +79,27 @@ def get_bibdata(tree, NS):
 
             data["Family Id"] = document.attrib["family-id"]
             bib_data = document.find("./epo:bibliographic-data", NS)
-            title=get_title(bib_data) #title
-            pub, prior=get_the_dates(bib_data) #dates
-            assignee=get_assignee(bib_data)#assignee/applicant
+            #Dates
             app_date=get_application_date(bib_data)
-            inventors=get_inventor_data(bib_data)
+            pub, prior=get_the_dates(bib_data)
+
+            try:
+            	title=get_title(bib_data) #title
+            except AttributeError:
+            	title=" "
+            	pass
+
+            try:
+            	assignee=get_assignee(bib_data)#assignee/applicant
+            except AttributeError:
+            	assignee=" "
+            	pass
+
+            try:	
+            	inventors=get_inventor_data(bib_data)
+            except AttributeError:
+            	inventors=" "
+            	pass
             #data logging
 
             data["Title"]= title
@@ -97,6 +120,7 @@ def get_application_date(bib_data):
 	return app_date
 
 def get_title(bib_data):
+
 	title = bib_data.find("./epo:invention-title[@lang='en']", NS).text
 	if title is None: #when title in not present in english
 		title = bib_data.find("./epo:invention-title", NS)
@@ -199,13 +223,16 @@ if __name__ == "__main__":
 	client = epo_ops.Client(key='62kB2O6tJtmG2RQsoOMJZUOhmbAlAkJ5', secret='WpsdCAOg9GyWw8i1')  # Instantiate client
 	patent_list , dir_path= main() #to work with gui
 	for patent in patent_list:
-		
-		data = published_data_api(client,patent)
-		family_list = family_data_api(client, patent) #list and piper separated string
-		data['Family members']=list_to_str(list(set(family_list)))[:-2] #remove last piper and cache to dict #list(set(data)) removes duplicates, 
-		data['Patent No.']=patent
-		frame=push_to_mainframe(frame,data)
-		print data 
+		try:
+			data = published_data_api(client,patent)
+			family_list = family_data_api(client, patent) #list and piper separated string
+			data['Family members']=list_to_str(list(set(family_list)))[:-2] #remove last piper and cache to dict #list(set(data)) removes duplicates, 
+			data['Patent No.']=patent
+			frame=push_to_mainframe(frame,data)
+			print data 
+		except epo_ops.exceptions.MissingRequiredValue:
+			print patent, ": ERROR: Number, country code and kind code must be present!"
+			pass
 	
 
 	#print frame.head()
