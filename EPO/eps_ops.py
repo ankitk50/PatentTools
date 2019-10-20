@@ -4,6 +4,7 @@ from lxml import etree as ET
 from datetime import date
 from epo_gui_V1 import *
 import pandas as pd
+import time
 
 
 NS = {
@@ -218,13 +219,18 @@ def list_to_str(lst):
 
 if __name__ == "__main__":
 
+	
+
 	frame=pd.DataFrame() #define mainframe
 	col=['Patent No.', 'Title', 'Family Id', 'Application Date','Earliest priority', 'Publication date', 'Assignee','Inventors','Family members']
 	client = epo_ops.Client(key='62kB2O6tJtmG2RQsoOMJZUOhmbAlAkJ5', secret='WpsdCAOg9GyWw8i1')  # Instantiate client
 	patent_list , dir_path= main() #to work with gui
+
+	tick= time.time() #start timer
+
 	for patent in patent_list:
 		try:
-			print "\n Processing...\n"
+			print "\n Processing "+patent+ "....\n"
 			data = published_data_api(client,patent)
 			family_list = family_data_api(client, patent) #list and piper separated string
 			data['Family members']=list_to_str(list(set(family_list)))[:-2] #remove last piper and cache to dict #list(set(data)) removes duplicates, 
@@ -234,11 +240,16 @@ if __name__ == "__main__":
 		except epo_ops.exceptions.MissingRequiredValue:
 			print patent, ": ERROR: Number, country code and kind code must be present!"
 			pass
+		except :
+			print "HTTP Error"
+			pass
 	
 
 	#print frame.head()
 	export_to_excel(frame) #export to excel sheet # default name output.xlsx
 
+	tock=time.time()
+	print "Execution time: ", tock-tick, " Sec"
 
 
 
