@@ -40,14 +40,14 @@ def get_kind_code(patent):
 			kind= secondlastchar+lastchar #last two characters are kind code
 			number=patent[2:-2]
 		else:
-			print ("Kind code absent or some alein characters in the patent number", patent)
+			print "Kind code absent or some alein characters in the patent number", patent
 			#raise exeception, do not process the patent
 
 #make US applications Espacenet compatible
 	if country=='US':
 		if len(number)> 10:
-			number=number[:4]+number[5:]
-
+			if number[4]=='0':
+				number=number[:4]+number[5:]
 
 	return country, number, kind
 
@@ -224,10 +224,11 @@ if __name__ == "__main__":
 	patent_list , dir_path= main() #to work with gui
 	for patent in patent_list:
 		try:
+			print "\n Processing...\n"
 			data = published_data_api(client,patent)
 			family_list = family_data_api(client, patent) #list and piper separated string
 			data['Family members']=list_to_str(list(set(family_list)))[:-2] #remove last piper and cache to dict #list(set(data)) removes duplicates, 
-			data['Patent No.']=patent
+			data['Patent No.']=patent.replace(" ","")
 			frame=push_to_mainframe(frame,data)
 			print data 
 		except epo_ops.exceptions.MissingRequiredValue:
