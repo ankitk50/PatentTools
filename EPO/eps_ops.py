@@ -1,8 +1,8 @@
 import epo_ops
 from lxml import etree as ET
-#from mailmerge import MailMerge
 from datetime import date
-from epo_gui_V1 import *
+from mailmerge import MailMerge
+from report_ui import *
 import pandas as pd
 import time
 
@@ -105,7 +105,7 @@ def get_bibdata(tree, NS):
 
             data["Title"]= title
             data["Publication date"]= pub
-            data['Earliest priority']= min(prior)
+            data['Earliest priority']= str(min(prior)) #
             data['Assignee']=assignee
             data['Application Date']=app_date
             data['Inventors']=inventors[:-2]
@@ -215,28 +215,79 @@ def list_to_str(lst):
 
 	return string
 
+def populate_doc(frameX,frameY,patent_listX, patent_listY):
+    template = "TEMPLATE 5.docx"
+    document = MailMerge(template)
+    XListofdict=[]
+    YListofdict=[]
+    XList2ofdict=[]
+   
+    for x in range(len(patent_listX)):
+    	Xdict={}
+        Xdict["X_PAT_NUMBER"]=frameX.iloc[x,0]
+        Xdict["X_PAT_TITLE"]=frameX.iloc[x,1]
+        Xdict["X_PAT_ASSIGNEE"]=frameX.iloc[x,6]
+        Xdict["X_PAT_PUBDATE"]=frameX.iloc[x,5]
+        Xdict["X_PAT_APPDATE"]=frameX.iloc[x,3]
+        Xdict["X_PAT_PRIORDATE"]=frameX.iloc[x,4]
+        Xdict["X_PAT_INVENTORS"]=frameX.iloc[x,7]
+        Xdict["X_PAT_FAMILY"]=frameX.iloc[x,8]
+        XListofdict.append(Xdict)
 
+    if len(patent_listY)>1:
+    	print patent_listY
+    	for x in range(len(patent_listY)):
+    		Ydict={}
+	        Ydict["Y_PAT_NUMBER"]=frameY.iloc[x,0]
+        	Ydict["Y_PAT_TITLE"]=frameY.iloc[x,1]
+       		Ydict["Y_PAT_ASSIGNEE"]=frameY.iloc[x,6]
+        	Ydict["Y_PAT_PUBDATE"]=frameY.iloc[x,5]
+        	Ydict["Y_PAT_APPDATE"]=frameY.iloc[x,3]
+        	Ydict["Y_PAT_PRIORDATE"]=frameY.iloc[x,4]
+        	Ydict["Y_PAT_INVENTORS"]=frameY.iloc[x,7]
+        	Ydict["Y_PAT_FAMILY"]=frameY.iloc[x,8]
+        	YListofdict.append(Ydict)
 
+    for x in range(len(patent_listX)):
+        Xdict1 = {}
+        Xdict1["X_PAT_{}_NUMBER".format(x+1)]=frameX.iloc[x,0]
+        Xdict1["X_PAT_{}_TITLE".format(x+1)]=frameX.iloc[x,1]
+        Xdict1["X_PAT_{}_ASSIGNEE".format(x+1)]=frameX.iloc[x,6]
+        Xdict1["X_PAT_{}_PUBDATE".format(x+1)]=frameX.iloc[x,5]
+        Xdict1["X_PAT_{}_APPDATE".format(x+1)]=frameX.iloc[x,3]
+        Xdict1["X_PAT_{}_PRIORDATE".format(x+1)]=frameX.iloc[x,4]
+        Xdict1["X_PAT_{}_INVENTORS".format(x+1)]=frameX.iloc[x,7]
+        Xdict1["X_PAT_{}_FAMILY".format(x+1)]=frameX.iloc[x,8]
+        XList2ofdict.append(Xdict1)
+
+    #print YListofdict    
+    document.merge_rows('X_PAT_NUMBER', XListofdict)
+    document.merge_rows('Y_PAT_NUMBER', YListofdict)
+    document.merge_pages(XList2ofdict)
+    #document.merge(**Ydict)
+    document.write('NEW REPORT1.docx')
+
+# US8139109B2,US5606609A,EP1417800B1
 if __name__ == "__main__":
 
-	
-
-	frame=pd.DataFrame() #define mainframe
+	frameX=pd.DataFrame() #define mainframe
+	frameY=pd.DataFrame()
 	col=['Patent No.', 'Title', 'Family Id', 'Application Date','Earliest priority', 'Publication date', 'Assignee','Inventors','Family members']
 	client = epo_ops.Client(key='62kB2O6tJtmG2RQsoOMJZUOhmbAlAkJ5', secret='WpsdCAOg9GyWw8i1')  # Instantiate client
-	patent_list , dir_path= main() #to work with gui
+	patent_listX, patent_listY, dir_path, f1, f2= main() #to work with gui
 
 	tick= time.time() #start timer
 
-	for patent in patent_list:
+	for patent in patent_listX:
 		try:
 			print "\n Processing "+patent+ "....\n"
 			data = published_data_api(client,patent)
 			family_list = family_data_api(client, patent) #list and piper separated string
 			data['Family members']=list_to_str(list(set(family_list)))[:-2] #remove last piper and cache to dict #list(set(data)) removes duplicates, 
 			data['Patent No.']=patent.replace(" ","")
-			frame=push_to_mainframe(frame,data)
-			print data 
+			frameX=push_to_mainframe(frameX,data)
+			print data
+
 		except epo_ops.exceptions.MissingRequiredValue:
 			print patent, ": ERROR: Number, country code and kind code must be present!"
 			pass
@@ -244,10 +295,26 @@ if __name__ == "__main__":
 			print "HTTP Error"
 			pass
 	
+	for patent in patent_listY:
+		try:
+			print "\n Processing "+patent+ "....\n"
+			data = published_data_api(client,patent)
+			family_list = family_data_api(client, patent) #list and piper separated string
+			data['Family members']=list_to_str(list(set(family_list)))[:-2] #remove last piper and cache to dict #list(set(data)) removes duplicates, 
+			data['Patent No.']=patent.replace(" ","")
+			frameY=push_to_mainframe(frameY,data)
+			print data
+
+		except epo_ops.exceptions.MissingRequiredValue:
+			print patent, ": ERROR: Number, country code and kind code must be present!"
+			pass
+		except :
+			print "HTTP Error"
+			pass
 
 	#print frame.head()
-	export_to_excel(frame) #export to excel sheet # default name output.xlsx
-
+	export_to_excel(frameX) #export to excel sheet # default name output.xlsx
+	populate_doc(frameX,frameY,patent_listX, patent_listY)
 	tock=time.time()
 	print "Execution time: ", tock-tick, " Sec"
 
